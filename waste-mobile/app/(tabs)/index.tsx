@@ -17,6 +17,7 @@ import * as Location from "expo-location";
 import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "../../lib/supabase";
+import { CONFIG } from "../../lib/config";
 import {
   colors,
   spacing,
@@ -205,9 +206,13 @@ export default function ScanScreen() {
     setScanResult(null);
 
     try {
-      // 1. Kirim gambar ke FastAPI lokal untuk diprediksi AI
+      if (!CONFIG.ML_API_URL) {
+        throw new Error("URL ML API belum terkonfigurasi di file .env");
+      }
+
+      // 1. Kirim gambar ke FastAPI untuk diprediksi AI
       const uploadResult = await FileSystem.uploadAsync(
-        "http://192.168.1.5:8000/predict",
+        `${CONFIG.ML_API_URL}/predict`,
         imageUri,
         {
           fieldName: "file",
@@ -266,7 +271,7 @@ export default function ScanScreen() {
       console.error("AI Analysis Error:", error.message);
       Alert.alert(
         "Gagal Analisis AI",
-        "Pastikan server FastAPI Python aktif dan IP address sudah benar.",
+        "Pastikan koneksi internet stabil dan URL API sudah benar.",
       );
       setAnalyzing(false);
     }

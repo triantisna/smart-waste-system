@@ -35,11 +35,8 @@ model = Model(inputs=base_model.input, outputs=predictions)
 model.compile(optimizer=Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
 
 # 3. Masukkan bobot murni hasil training Colab secara aman
-try:
-    model.load_weights('waste_weights.weights.h5')
-    print("Bobot murni berhasil dimuat ke model lokal tanpa error!")
-except Exception as e:
-    print(f"Gagal memuat bobot: {e}")
+model.load_weights('waste_weights.weights.h5')
+print("Bobot murni berhasil dimuat ke model!")
 
 CLASS_NAMES = ["Organic Waste", "Paper Waste", "Plastic Waste"]
 
