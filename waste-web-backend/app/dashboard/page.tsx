@@ -22,6 +22,8 @@ export default function DashboardOverviewPage() {
     categories: {},
   });
   const [loading, setLoading] = useState(true);
+  // [UI saja] flag untuk menampilkan error state (sebelumnya hanya console.error)
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,6 +71,7 @@ export default function DashboardOverviewPage() {
         }
       } catch (error) {
         console.error("Gagal memuat statistik:", error);
+        if (isMounted) setHasError(true);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -86,15 +89,8 @@ export default function DashboardOverviewPage() {
     return Math.round((count / stats.total) * 100);
   };
 
-  // Warna otomatis untuk berbagai kategori sampah
-  const categoryColors = [
-    "bg-emerald-500 text-emerald-700 border-emerald-100",
-    "bg-amber-500 text-amber-700 border-amber-100",
-    "bg-indigo-500 text-indigo-700 border-indigo-100",
-    "bg-rose-500 text-rose-700 border-rose-100",
-    "bg-cyan-500 text-cyan-700 border-cyan-100",
-  ];
-
+  // Warna kategori. Class ditulis utuh (bukan dirakit dari string) agar
+  // terdeteksi oleh scanner Tailwind v4.
   const barColors = [
     "bg-emerald-500",
     "bg-amber-500",
@@ -103,177 +99,292 @@ export default function DashboardOverviewPage() {
     "bg-cyan-500",
   ];
 
+  // [UI saja] konfigurasi tampilan status: dipakai oleh kartu, bar, dan legenda
+  const statusItems = [
+    {
+      key: "pending",
+      label: "Pending",
+      value: stats.pending,
+      card: "bg-amber-50 ring-amber-600/15",
+      text: "text-amber-800",
+      dot: "bg-amber-500",
+    },
+    {
+      key: "inProgress",
+      label: "In Progress",
+      value: stats.inProgress,
+      card: "bg-sky-50 ring-sky-600/15",
+      text: "text-sky-800",
+      dot: "bg-sky-500",
+    },
+    {
+      key: "completed",
+      label: "Completed",
+      value: stats.completed,
+      card: "bg-emerald-50 ring-emerald-600/15",
+      text: "text-emerald-800",
+      dot: "bg-emerald-600",
+    },
+    {
+      key: "rejected",
+      label: "Rejected",
+      value: stats.rejected,
+      card: "bg-rose-50 ring-rose-600/15",
+      text: "text-rose-800",
+      dot: "bg-rose-500",
+    },
+  ];
+
+  // Urutan terbanyak -> tersedikit, hanya untuk tampilan (state tidak diubah)
+  const categoryEntries = Object.entries(stats.categories).sort(
+    (a, b) => b[1] - a[1],
+  );
+
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        Statistik Laporan Sampah
-      </h2>
+      {/* PERUBAHAN LAYOUT: judul halaman + deskripsi singkat */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+          Statistik Laporan Sampah
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Ringkasan seluruh laporan warga beserta status penanganannya.
+        </p>
+      </div>
 
       {loading ? (
-        <p className="text-gray-500">Memuat data statistik...</p>
+        <OverviewSkeleton />
+      ) : hasError ? (
+        <div
+          role="alert"
+          className="flex flex-col items-center rounded-2xl border border-red-200 bg-red-50 px-6 py-12 text-center"
+        >
+          <p className="text-base font-semibold text-red-900">
+            Statistik gagal dimuat
+          </p>
+          <p className="mt-1 max-w-sm text-sm text-red-800">
+            Periksa koneksi internet atau konfigurasi Supabase, lalu muat ulang
+            halaman.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 inline-flex h-10 items-center rounded-lg bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+          >
+            Muat ulang halaman
+          </button>
+        </div>
       ) : (
         <div className="space-y-6">
-          {/* Stat Cards Utama */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-              <p className="text-sm font-medium text-gray-500">Total Laporan</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
+          {/* Stat Cards Utama
+              PERUBAHAN LAYOUT: 2 kolom di mobile, kartu "Total" melebar penuh;
+              5 kolom sejajar di layar >= lg. */}
+          <section
+            aria-label="Ringkasan jumlah laporan"
+            className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5"
+          >
+            <div className="col-span-2 rounded-2xl bg-emerald-800 p-5 text-white shadow-xs sm:p-6 lg:col-span-1">
+              <p className="text-sm font-medium text-emerald-100">
+                Total Laporan
+              </p>
+              <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight">
                 {stats.total}
               </p>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-yellow-100">
-              <p className="text-sm font-medium text-yellow-600">Pending</p>
-              <p className="mt-2 text-3xl font-bold text-yellow-700">
-                {stats.pending}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-blue-100">
-              <p className="text-sm font-medium text-blue-600">In Progress</p>
-              <p className="mt-2 text-3xl font-bold text-blue-700">
-                {stats.inProgress}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-green-100">
-              <p className="text-sm font-medium text-green-600">Completed</p>
-              <p className="mt-2 text-3xl font-bold text-green-700">
-                {stats.completed}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-red-100">
-              <p className="text-sm font-medium text-red-600">Rejected</p>
-              <p className="mt-2 text-3xl font-bold text-red-700">
-                {stats.rejected}
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Bar Visual Proporsi Status */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">
-              Proporsi Status Laporan
-            </h3>
-
-            {stats.total === 0 ? (
-              <p className="text-sm text-gray-400">
-                Belum ada data untuk ditampilkan dalam diagram.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-100 gap-0.5">
-                  <div
-                    style={{ width: `${getPercentage(stats.pending)}%` }}
-                    className="bg-yellow-400 transition-all duration-500"
-                    title={`Pending: ${stats.pending}`}
-                  />
-                  <div
-                    style={{ width: `${getPercentage(stats.inProgress)}%` }}
-                    className="bg-blue-500 transition-all duration-500"
-                    title={`In Progress: ${stats.inProgress}`}
-                  />
-                  <div
-                    style={{ width: `${getPercentage(stats.completed)}%` }}
-                    className="bg-green-500 transition-all duration-500"
-                    title={`Completed: ${stats.completed}`}
-                  />
-                  <div
-                    style={{ width: `${getPercentage(stats.rejected)}%` }}
-                    className="bg-red-500 transition-all duration-500"
-                    title={`Rejected: ${stats.rejected}`}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-yellow-400" />
-                    <span className="text-gray-600">
-                      Pending: <b>{getPercentage(stats.pending)}%</b> (
-                      {stats.pending})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-blue-500" />
-                    <span className="text-gray-600">
-                      In Progress: <b>{getPercentage(stats.inProgress)}%</b> (
-                      {stats.inProgress})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-green-500" />
-                    <span className="text-gray-600">
-                      Completed: <b>{getPercentage(stats.completed)}%</b> (
-                      {stats.completed})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-red-500" />
-                    <span className="text-gray-600">
-                      Rejected: <b>{getPercentage(stats.rejected)}%</b> (
-                      {stats.rejected})
-                    </span>
-                  </div>
-                </div>
+            {statusItems.map((s) => (
+              <div
+                key={s.key}
+                className={`rounded-2xl p-5 ring-1 ring-inset sm:p-6 ${s.card}`}
+              >
+                <p
+                  className={`flex items-center gap-2 text-sm font-medium ${s.text}`}
+                >
+                  <span className={`size-2 rounded-full ${s.dot}`} />
+                  {s.label}
+                </p>
+                <p
+                  className={`mt-2 text-3xl font-bold tabular-nums tracking-tight ${s.text}`}
+                >
+                  {s.value}
+                </p>
               </div>
-            )}
-          </div>
+            ))}
+          </section>
 
-          {/* Distribusi Kategori Sampah */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">
-              Distribusi Kategori Sampah (AI Prediction)
-            </h3>
+          {/* Dua panel berdampingan di layar lebar (xl), bertumpuk di bawahnya */}
+          <div className="grid gap-6 xl:grid-cols-2">
+            {/* Progress Bar Visual Proporsi Status */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+              <h3 className="text-base font-semibold text-slate-900">
+                Proporsi Status Laporan
+              </h3>
 
-            {Object.keys(stats.categories).length === 0 ? (
-              <p className="text-sm text-gray-400">
-                Belum ada data kategori sampah yang tercatat.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {/* Baris Progress Kategori */}
-                <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-100 gap-0.5">
-                  {Object.entries(stats.categories).map(
-                    ([category, count], index) => {
+              {stats.total === 0 ? (
+                <EmptyState text="Belum ada data untuk ditampilkan dalam diagram." />
+              ) : (
+                <div className="mt-5 space-y-5">
+                  <div
+                    role="img"
+                    aria-label={`Proporsi status: ${statusItems
+                      .map((s) => `${s.label} ${getPercentage(s.value)}%`)
+                      .join(", ")}`}
+                    className="flex h-4 w-full gap-0.5 overflow-hidden rounded-full bg-slate-100"
+                  >
+                    {statusItems.map((s) => (
+                      <div
+                        key={s.key}
+                        style={{ width: `${getPercentage(s.value)}%` }}
+                        className={`${s.dot} transition-all duration-500 motion-reduce:transition-none`}
+                        title={`${s.label}: ${s.value}`}
+                      />
+                    ))}
+                  </div>
+
+                  <ul className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                    {statusItems.map((s) => (
+                      <li
+                        key={s.key}
+                        className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2"
+                      >
+                        <span className="flex items-center gap-2 text-slate-600">
+                          <span
+                            className={`size-3 shrink-0 rounded-full ${s.dot}`}
+                          />
+                          {s.label}
+                        </span>
+                        <span className="tabular-nums text-slate-900">
+                          <b>{getPercentage(s.value)}%</b>{" "}
+                          <span className="text-slate-500">({s.value})</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+
+            {/* Distribusi Kategori Sampah */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+              <h3 className="text-base font-semibold text-slate-900">
+                Distribusi Kategori Sampah (AI Prediction)
+              </h3>
+
+              {categoryEntries.length === 0 ? (
+                <EmptyState text="Belum ada data kategori sampah yang tercatat." />
+              ) : (
+                <div className="mt-5 space-y-5">
+                  {/* Baris Progress Kategori */}
+                  <div
+                    role="img"
+                    aria-label="Distribusi kategori sampah"
+                    className="flex h-4 w-full gap-0.5 overflow-hidden rounded-full bg-slate-100"
+                  >
+                    {categoryEntries.map(([category, count], index) => {
                       const pct = getPercentage(count);
                       const colorClass = barColors[index % barColors.length];
                       return (
                         <div
                           key={category}
                           style={{ width: `${pct}%` }}
-                          className={`${colorClass} transition-all duration-500`}
+                          className={`${colorClass} transition-all duration-500 motion-reduce:transition-none`}
                           title={`${category}: ${count} (${pct}%)`}
                         />
                       );
-                    },
-                  )}
-                </div>
+                    })}
+                  </div>
 
-                {/* Legend Kategori */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 pt-2 text-sm">
-                  {Object.entries(stats.categories).map(
-                    ([category, count], index) => {
+                  {/* Legend Kategori: daftar terurut, tiap baris punya bar sendiri
+                      agar kategori kecil tetap terbaca */}
+                  <ul className="space-y-3">
+                    {categoryEntries.map(([category, count], index) => {
                       const pct = getPercentage(count);
                       const dotColor = barColors[index % barColors.length];
                       return (
-                        <div key={category} className="flex items-center gap-2">
-                          <span
-                            className={`h-3 w-3 rounded-full ${dotColor}`}
-                          />
-                          <span className="text-gray-600 truncate">
-                            {category}: <b>{pct}%</b> ({count})
-                          </span>
-                        </div>
+                        <li key={category}>
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="flex min-w-0 items-center gap-2 text-slate-700">
+                              <span
+                                className={`size-3 shrink-0 rounded-full ${dotColor}`}
+                              />
+                              <span className="truncate">{category}</span>
+                            </span>
+                            <span className="shrink-0 tabular-nums text-slate-900">
+                              <b>{pct}%</b>{" "}
+                              <span className="text-slate-500">({count})</span>
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              style={{ width: `${pct}%` }}
+                              className={`h-full rounded-full ${dotColor}`}
+                            />
+                          </div>
+                        </li>
                       );
-                    },
-                  )}
+                    })}
+                  </ul>
                 </div>
-              </div>
-            )}
+              )}
+            </section>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Komponen presentasi kecil ---------- */
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
+      <svg
+        className="size-8 text-slate-400"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 3v18h18" />
+        <path d="M7 15v3M12 9v9M17 5v13" />
+      </svg>
+      <p className="mt-3 text-sm text-slate-600">{text}</p>
+    </div>
+  );
+}
+
+// Skeleton menggantikan teks "Memuat data statistik..."
+function OverviewSkeleton() {
+  return (
+    <div
+      className="space-y-6"
+      role="status"
+      aria-live="polite"
+      aria-label="Memuat data statistik"
+    >
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className={`h-28 animate-pulse rounded-2xl bg-slate-200 motion-reduce:animate-none ${
+              i === 0 ? "col-span-2 lg:col-span-1" : ""
+            }`}
+          />
+        ))}
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            className="h-64 animate-pulse rounded-2xl bg-slate-200 motion-reduce:animate-none"
+          />
+        ))}
+      </div>
+      <span className="sr-only">Memuat data statistik...</span>
     </div>
   );
 }
