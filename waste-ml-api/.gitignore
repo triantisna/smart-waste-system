@@ -1,0 +1,7 @@
+__pycache__/
+venv/
+env/
+*.pyc
+.env
+model/*.h5
+model/*.keras
