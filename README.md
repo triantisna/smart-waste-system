@@ -17,6 +17,20 @@ Platform pelaporan dan pengelolaan sampah terpadu: aplikasi mobile untuk warga, 
 
 ---
 
+## 🚀 Live Demo & Test Drive
+
+Anda dapat mencoba platform Smart Waste System secara langsung tanpa perlu melakukan instalasi lokal. Supabase backend dan API ML sudah terkonfigurasi secara otomatis pada demo ini.
+
+| Platform                     | Akses & Unduhan                                                                                                                       | Kredensial Pengujian                                              |
+| :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------- |
+| 💻 **Web Dashboard (Admin)** | [**Buka Web Admin (Vercel)**](https://smart-waste-system-alpha.vercel.app/)                                                           | **Email:** `admin@smartewaste.com`<br>**Password:** `adminSWS123` |
+| 📱 **Mobile Android App**    | [**Unduh APK (Google Drive)**](https://drive.google.com/drive/folders/1xyOyWmdAUdJ1QILnnVbbRh5OhNWD89oT?usp=sharing) _(Size: 112 MB)_ | Buat akun warga baru langsung di aplikasi                         |
+
+> 💡 **Catatan untuk Aplikasi Mobile:**  
+> Unduh file `.apk` melalui tautan Google Drive di atas, lalu pasang pada perangkat Android Anda. Pastikan untuk memberikan izin akses **Kamera** dan **Lokasi (GPS)** saat pertama kali menjalankan aplikasi untuk pengujian fitur deteksi dan pelaporan.
+
+---
+
 ## Daftar Isi
 
 - [Tentang Proyek](#-tentang-proyek)
