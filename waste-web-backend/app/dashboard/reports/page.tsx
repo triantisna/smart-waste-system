@@ -1,5 +1,7 @@
 "use client";
 
+// Simpan file ini sebagai: app/dashboard/reports/page.tsx
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -21,6 +23,7 @@ export default function ReportsManagementPage() {
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null); // State baru untuk loading delete
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
 
   // State untuk Modal Popup Foto
@@ -29,7 +32,6 @@ export default function ReportsManagementPage() {
   // State untuk menyimpan cache alamat berdasarkan koordinat
   const [addresses, setAddresses] = useState<{ [key: string]: string }>({});
 
-  // 1. Deklarasikan fungsi fetchAddresses di atas sebelum digunakan oleh useEffect
   const fetchAddresses = useCallback(
     async (reportList: Report[]) => {
       const newAddresses: { [key: string]: string } = {};
@@ -79,7 +81,6 @@ export default function ReportsManagementPage() {
     [addresses],
   );
 
-  // 2. useEffect ditempatkan setelah fetchAddresses dideklarasikan
   useEffect(() => {
     let isMounted = true;
 
@@ -96,8 +97,6 @@ export default function ReportsManagementPage() {
           const reportList = data as Report[];
           setReports(reportList);
           setFilteredReports(reportList);
-
-          // Panggil fungsi reverse geocoding
           fetchAddresses(reportList);
         }
       } catch (err: unknown) {
@@ -159,212 +158,397 @@ export default function ReportsManagementPage() {
     }
   };
 
+  // Fungsi baru untuk menghapus laporan
+  const handleDelete = async (id: string) => {
+    const confirmDelete = window.confirm(
+      "Apakah Anda yakin ingin menghapus laporan ini? Tindakan ini tidak dapat dibatalkan.",
+    );
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(id);
+
+      const { error } = await supabase.from("reports").delete().eq("id", id);
+
+      if (error) throw error;
+
+      // Hapus data dari state lokal agar UI langsung terupdate
+      const updatedList = reports.filter((rep) => rep.id !== id);
+      setReports(updatedList);
+
+      if (selectedStatus === "All") {
+        setFilteredReports(updatedList);
+      } else {
+        setFilteredReports(
+          updatedList.filter((rep) => rep.status === selectedStatus),
+        );
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat menghapus data";
+      alert("Gagal menghapus laporan: " + errorMessage);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Class ditulis utuh agar terdeteksi scanner Tailwind v4
   const getStatusBadgeClass = (status: Report["status"]) => {
     switch (status) {
       case "Pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-amber-50 text-amber-800 ring-amber-600/20";
       case "In Progress":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-sky-50 text-sky-800 ring-sky-600/20";
       case "Completed":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-50 text-emerald-800 ring-emerald-600/20";
       case "Rejected":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-rose-50 text-rose-800 ring-rose-600/20";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-slate-100 text-slate-700 ring-slate-500/20";
     }
+  };
+
+  const getStatusDotClass = (status: Report["status"]) => {
+    switch (status) {
+      case "Pending":
+        return "bg-amber-500";
+      case "In Progress":
+        return "bg-sky-500";
+      case "Completed":
+        return "bg-emerald-600";
+      case "Rejected":
+        return "bg-rose-500";
+      default:
+        return "bg-slate-400";
+    }
+  };
+
+  /* ================== Bagian presentasi (tanpa logika baru) ================== */
+
+  const filterOptions = [
+    "All",
+    "Pending",
+    "In Progress",
+    "Completed",
+    "Rejected",
+  ];
+
+  // Jumlah per status, hanya untuk label tab
+  const countFor = (status: string) =>
+    status === "All"
+      ? reports.length
+      : reports.filter((r) => r.status === status).length;
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  const renderStatusBadge = (status: Report["status"]) => (
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${getStatusBadgeClass(
+        status,
+      )}`}
+    >
+      <span className={`size-1.5 rounded-full ${getStatusDotClass(status)}`} />
+      {status}
+    </span>
+  );
+
+  const renderPhoto = (report: Report, size: "sm" | "lg") => {
+    const isValidImage =
+      report.image_url && report.image_url.startsWith("http");
+    const dim = size === "lg" ? "size-20" : "size-12";
+    return isValidImage ? (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={report.image_url}
+        alt="Bukti Sampah"
+        onClick={() => setSelectedImage(report.image_url)}
+        className={`${dim} shrink-0 cursor-zoom-in rounded-lg border border-slate-200 object-cover transition hover:opacity-85`}
+        title="Klik untuk memperbesar foto"
+        width={size === "lg" ? 80 : 48}
+        height={size === "lg" ? 80 : 48}
+      />
+    ) : (
+      <span
+        className={`${dim} grid shrink-0 place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-1 text-center text-[10px] leading-tight text-slate-400`}
+      >
+        Tidak ada foto
+      </span>
+    );
+  };
+
+  const renderConfidence = (report: Report) =>
+    report.confidence !== undefined && report.confidence !== null
+      ? `${(report.confidence * 100).toFixed(1)}%`
+      : "N/A";
+
+  const renderLocation = (report: Report) => {
+    const coordKey = `${report.latitude},${report.longitude}`;
+    const addressText = addresses[coordKey];
+    return report.latitude && report.longitude ? (
+      <div>
+        <p className="mb-0.5 font-medium text-slate-800">
+          {addressText || "Memuat nama alamat..."}
+        </p>
+        <a
+          href={`https://www.google.com/maps?q=${report.latitude},${report.longitude}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
+        >
+          Buka di Google Maps ↗
+        </a>
+      </div>
+    ) : (
+      <span className="italic text-slate-400">Lokasi tidak tersedia</span>
+    );
+  };
+
+  const renderActions = (report: Report) => {
+    const busy = updatingId === report.id;
+    const base =
+      "inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40";
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          disabled={busy || report.status === "In Progress"}
+          onClick={() => handleUpdateStatus(report.id, "In Progress")}
+          className={`${base} bg-sky-50 text-sky-800 hover:bg-sky-100 focus-visible:outline-sky-600`}
+        >
+          Process
+        </button>
+        <button
+          disabled={busy || report.status === "Completed"}
+          onClick={() => handleUpdateStatus(report.id, "Completed")}
+          className={`${base} bg-emerald-50 text-emerald-800 hover:bg-emerald-100 focus-visible:outline-emerald-600`}
+        >
+          Complete
+        </button>
+        <button
+          disabled={busy || report.status === "Rejected"}
+          onClick={() => handleUpdateStatus(report.id, "Rejected")}
+          className={`${base} bg-rose-50 text-rose-800 hover:bg-rose-100 focus-visible:outline-rose-600`}
+        >
+          Reject
+        </button>
+        {/* Tombol Hapus Baru */}
+        <button
+          disabled={deletingId === report.id}
+          onClick={() => handleDelete(report.id)}
+          className={`${base} border border-slate-200 bg-white text-slate-700 hover:border-rose-600 hover:bg-rose-600 hover:text-white focus-visible:outline-rose-600`}
+        >
+          {deletingId === report.id ? "..." : "Hapus"}
+        </button>
+      </div>
+    );
   };
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      {/* Header halaman + filter */}
+      <div className="mb-6 space-y-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Manajemen Laporan Sampah
           </h2>
-          <p className="text-xs md:text-sm text-gray-500">
+          <p className="mt-1 text-sm text-slate-600">
             Total data ditampilkan: {filteredReports.length} dari{" "}
             {reports.length}
           </p>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {["All", "Pending", "In Progress", "Completed", "Rejected"].map(
-            (status) => (
+        {/* Filter: satu baris yang bisa digeser di mobile, wrap di >= sm */}
+        <div
+          role="group"
+          aria-label="Filter status laporan"
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+        >
+          {filterOptions.map((status) => {
+            const active = selectedStatus === status;
+            return (
               <button
                 key={status}
                 onClick={() => handleFilter(status)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  selectedStatus === status
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                aria-pressed={active}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
+                  active
+                    ? "bg-emerald-700 text-white shadow-xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 {status}
+                <span
+                  className={`rounded-full px-1.5 text-xs tabular-nums ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {countFor(status)}
+                </span>
               </button>
-            ),
-          )}
+            );
+          })}
         </div>
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Memuat data laporan...</p>
+        <div
+          role="status"
+          aria-label="Memuat data laporan"
+          className="space-y-3"
+        >
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-20 animate-pulse rounded-2xl bg-slate-200 motion-reduce:animate-none"
+            />
+          ))}
+          <span className="sr-only">Memuat data laporan...</span>
+        </div>
       ) : filteredReports.length === 0 ? (
-        <div className="rounded-xl bg-white p-8 text-center shadow-sm border border-gray-100">
-          <div className="text-gray-500 text-sm">
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+          <svg
+            className="size-10 text-slate-300"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="5" y="3" width="14" height="18" rx="2" />
+            <path d="M9 8h6M9 12h6M9 16h4" />
+          </svg>
+          <p className="mt-3 text-sm text-slate-600">
             Tidak ada laporan dengan status &apos;{selectedStatus}&apos;.
-          </div>
+          </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl bg-white shadow-sm border border-gray-100">
-          <table className="w-full text-left border-collapse min-w-225">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                <th className="p-4">Foto</th>
-                <th className="p-4">Kategori AI</th>
-                <th className="p-4">Confidence</th>
-                <th className="p-4">Lokasi / Alamat</th>
-                <th className="p-4">Tanggal</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-center">Aksi / Ubah Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
-              {filteredReports.map((report) => {
-                const isValidImage =
-                  report.image_url && report.image_url.startsWith("http");
-                const coordKey = `${report.latitude},${report.longitude}`;
-                const addressText = addresses[coordKey];
+        <>
+          {/* PERUBAHAN LAYOUT (< md): daftar kartu agar tidak perlu scroll horizontal */}
+          <ul className="space-y-3 md:hidden">
+            {filteredReports.map((report) => (
+              <li
+                key={report.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs"
+              >
+                <div className="flex gap-4">
+                  {renderPhoto(report, "lg")}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold text-slate-900">
+                        {report.waste_category || "Tidak Diketahui"}
+                      </p>
+                      {renderStatusBadge(report.status)}
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Confidence:{" "}
+                      <span className="font-semibold tabular-nums text-emerald-800">
+                        {renderConfidence(report)}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formatDate(report.created_at)}
+                    </p>
+                  </div>
+                </div>
 
-                return (
-                  <tr key={report.id} className="hover:bg-gray-50 transition">
-                    <td className="p-4">
-                      {isValidImage ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={report.image_url}
-                          alt="Bukti Sampah"
-                          onClick={() => setSelectedImage(report.image_url)}
-                          className="h-12 w-12 rounded-lg object-cover border border-gray-200 shadow-xs cursor-pointer hover:opacity-80 transition transform hover:scale-105"
-                          title="Klik untuk memperbesar foto"
-                          width={48}
-                          height={48}
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">
-                          Tidak ada foto
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 font-medium text-gray-900">
+                <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
+                  {renderLocation(report)}
+                </div>
+
+                <div className="mt-3">{renderActions(report)}</div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Tabel (>= md) */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs md:block">
+            <table className="w-full min-w-225 border-collapse text-left">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  <th scope="col" className="px-4 py-3">
+                    Foto
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Kategori AI
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Confidence
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Lokasi / Alamat
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Tanggal
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Aksi / Ubah Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                {filteredReports.map((report) => (
+                  <tr
+                    key={report.id}
+                    className="align-top transition-colors hover:bg-slate-50/70"
+                  >
+                    <td className="px-4 py-3">{renderPhoto(report, "sm")}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
                       {report.waste_category || "Tidak Diketahui"}
                     </td>
-                    <td className="p-4 font-semibold text-blue-600">
-                      {report.confidence !== undefined &&
-                      report.confidence !== null
-                        ? `${(report.confidence * 100).toFixed(1)}%`
-                        : "N/A"}
+                    <td className="px-4 py-3 font-semibold tabular-nums text-emerald-800">
+                      {renderConfidence(report)}
                     </td>
-                    <td className="p-4 text-xs text-gray-600 max-w-xs">
-                      {report.latitude && report.longitude ? (
-                        <div>
-                          <p className="font-medium text-gray-800 mb-0.5">
-                            {addressText || "Memuat nama alamat..."}
-                          </p>
-                          <a
-                            href={`https://www.google.com/maps?q=${report.latitude},${report.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 underline hover:text-blue-800 text-[11px]"
-                          >
-                            Buka di Google Maps ↗
-                          </a>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 italic">
-                          Lokasi tidak tersedia
-                        </span>
-                      )}
+                    <td className="max-w-xs px-4 py-3 text-xs text-slate-600">
+                      {renderLocation(report)}
                     </td>
-                    <td className="p-4 text-gray-500 text-xs">
-                      {new Date(report.created_at).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                      {formatDate(report.created_at)}
                     </td>
-                    <td className="p-4">
-                      <span
-                        className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                          report.status,
-                        )}`}
-                      >
-                        {report.status}
-                      </span>
+                    <td className="px-4 py-3">
+                      {renderStatusBadge(report.status)}
                     </td>
-                    <td className="p-4 text-center">
-                      <div className="flex justify-center gap-1.5 flex-wrap">
-                        <button
-                          disabled={
-                            updatingId === report.id ||
-                            report.status === "In Progress"
-                          }
-                          onClick={() =>
-                            handleUpdateStatus(report.id, "In Progress")
-                          }
-                          className="rounded bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100 disabled:opacity-50 transition cursor-pointer"
-                        >
-                          Process
-                        </button>
-                        <button
-                          disabled={
-                            updatingId === report.id ||
-                            report.status === "Completed"
-                          }
-                          onClick={() =>
-                            handleUpdateStatus(report.id, "Completed")
-                          }
-                          className="rounded bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600 hover:bg-green-100 disabled:opacity-50 transition cursor-pointer"
-                        >
-                          Complete
-                        </button>
-                        <button
-                          disabled={
-                            updatingId === report.id ||
-                            report.status === "Rejected"
-                          }
-                          onClick={() =>
-                            handleUpdateStatus(report.id, "Rejected")
-                          }
-                          className="rounded bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50 transition cursor-pointer"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </td>
+                    <td className="px-4 py-3">{renderActions(report)}</td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* MODAL POPUP PREVIEW FOTO */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Preview bukti sampah"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs"
           onClick={() => setSelectedImage(null)}
         >
           <div
-            className="relative max-w-2xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl p-2"
+            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white p-2 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 z-10 bg-black/60 text-white rounded-full p-2 hover:bg-black transition cursor-pointer"
+              className="absolute right-4 top-4 z-10 grid size-11 place-items-center rounded-full bg-slate-900/70 text-white transition-colors hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-white"
               title="Tutup"
+              aria-label="Tutup preview"
             >
               ✕
             </button>
@@ -372,7 +556,7 @@ export default function ReportsManagementPage() {
             <img
               src={selectedImage}
               alt="Preview Bukti Sampah"
-              className="w-full max-h-[80vh] object-contain rounded-xl"
+              className="max-h-[80vh] w-full rounded-xl object-contain"
             />
           </div>
         </div>

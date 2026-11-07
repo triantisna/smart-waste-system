@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 10.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://paenjlxlafiskbawdlvb.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhZW5qbHhsYWZpc2tiYXdkbHZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2ODM4MzQsImV4cCI6MjEwOTI1OTgzNH0.AMDNEgUJ-B7Ml_X4CQlfUH-dhxu7M00oVv12DnH2PG0",
+        "EXPO_PUBLIC_ML_API_URL": "https://smart-waste-system-production.up.railway.app"
+      }
+    },
+    "production": {}
+  },
+  "submit": {
+    "production": {}
+  }
+}
