@@ -17,21 +17,21 @@ Platform pelaporan dan pengelolaan sampah terpadu: aplikasi mobile untuk warga, 
 
 ---
 
-## 📑 Daftar Isi
+## Daftar Isi
 
 - [Tentang Proyek](#-tentang-proyek)
 - [Fitur Utama](#-fitur-utama)
 - [Arsitektur Sistem](#-arsitektur-sistem)
 - [Tech Stack](#️-tech-stack)
 - [Struktur Repositori](#-struktur-repositori)
-- [Panduan Penggunaan](#-panduan-penggunaan)
 - [Instalasi & Menjalankan Proyek](#-instalasi--menjalankan-proyek)
+- [Panduan Penggunaan](#-panduan-penggunaan)
 - [Skema Database](#️-skema-database)
 - [Kontributor](#-kontributor)
 
 ---
 
-## 📌 Tentang Proyek
+## Tentang Proyek
 
 **Smart Waste System** menghubungkan tiga komponen dalam satu alur kerja:
 
@@ -43,26 +43,26 @@ Platform pelaporan dan pengelolaan sampah terpadu: aplikasi mobile untuk warga, 
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
 **Aplikasi Mobile**
 
-- 📸 Scan sampah langsung dari kamera, lengkap dengan klasifikasi AI beserta tingkat _confidence_
-- 📍 Lokasi GPS (latitude & longitude) terlampir otomatis pada laporan
-- 📋 Riwayat laporan pribadi dengan status terkini
-- 🔐 Registrasi dan login dengan Supabase Auth
+- Scan sampah langsung dari kamera, lengkap dengan klasifikasi AI beserta tingkat _confidence_
+- Lokasi GPS (latitude & longitude) terlampir otomatis pada laporan
+- Riwayat laporan pribadi dengan status terkini
+- Registrasi dan login dengan Supabase Auth
 
 **Web Dashboard Admin**
 
-- 📊 Statistik overview: total laporan, proporsi status, dan distribusi kategori sampah
-- 🗺️ Peta interaktif sebaran titik laporan (Leaflet)
-- 🧾 Manajemen laporan: filter status, preview foto, alamat hasil _reverse geocoding_, ubah status, dan hapus laporan
-- 👥 Manajemen pengguna mobile
-- 🔒 Akses dibatasi untuk akun dengan role `admin`
+- Statistik overview: total laporan, proporsi status, dan distribusi kategori sampah
+- Peta interaktif sebaran titik laporan (Leaflet)
+- Manajemen laporan: filter status, preview foto, alamat hasil _reverse geocoding_, ubah status, dan hapus laporan
+- Manajemen pengguna mobile
+- Akses dibatasi untuk akun dengan role `admin`
 
 ---
 
-## 🧭 Arsitektur Sistem
+## Arsitektur Sistem
 
 ```mermaid
 flowchart LR
@@ -75,7 +75,7 @@ flowchart LR
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer                      | Teknologi                                                      |
 | -------------------------- | -------------------------------------------------------------- |
@@ -87,12 +87,12 @@ flowchart LR
 
 ---
 
-## 📂 Struktur Repositori
+## Struktur Repositori
 
 ```text
 smart-waste-system/
 ├── database/              # Skema SQL / ERD database Supabase
-├── dataset/               # Sampel dataset gambar (atau tautan Google Drive jika ukuran terlalu besar)
+├── dataset/               # Seluruh dataset gambar ( tautan Google Drive )
 ├── evaluation/            # Hasil evaluasi model (confusion matrix, classification report)
 ├── waste-ml-api/          # FastAPI & model machine learning (.h5 / .keras)
 ├── waste-mobile/          # Aplikasi Expo (React Native)
@@ -102,7 +102,7 @@ smart-waste-system/
 
 ---
 
-## 🚀 Instalasi & Menjalankan Proyek
+## Instalasi & Menjalankan Proyek
 
 ### Prasyarat
 
@@ -112,14 +112,14 @@ smart-waste-system/
 - Akun [Supabase](https://supabase.com/)
 - Aplikasi **Expo Go** di perangkat Android / iOS
 
-### 1️⃣ Konfigurasi Database (Supabase)
+### 1️ Konfigurasi Database (Supabase)
 
 1. Buat project baru di Supabase.
 2. Buat tabel `users` dan `reports` sesuai [skema database](#️-skema-database) (atau jalankan SQL di folder `database/`).
 3. Buat Storage bucket bernama **`waste-images`** dengan akses publik untuk foto laporan.
 4. Buat satu akun admin: daftarkan akun, lalu ubah kolom `role` pada tabel `users` menjadi `admin`.
 
-### 2️⃣ Menjalankan ML API (`waste-ml-api`)
+### 2️ Menjalankan ML API (`waste-ml-api`)
 
 ```bash
 cd waste-ml-api
@@ -139,7 +139,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 - Dokumentasi Swagger: `http://localhost:8000/docs`
 - Endpoint prediksi: `POST /predict` (multipart, field `file`) → `{ "category": "...", "confidence": 0.95 }`
 
-### 3️⃣ Menjalankan Web Dashboard (`waste-web-backend`)
+### 3️ Menjalankan Web Dashboard (`waste-web-backend`)
 
 ```bash
 cd waste-web-backend
@@ -159,7 +159,7 @@ npm run dev
 
 Web Admin berjalan di `http://localhost:3000`.
 
-### 4️⃣ Menjalankan Aplikasi Mobile (`waste-mobile`)
+### 4️ Menjalankan Aplikasi Mobile (`waste-mobile`)
 
 ```bash
 cd waste-mobile
@@ -173,7 +173,7 @@ Sebelum menjalankan, sesuaikan dua konfigurasi berikut:
 | URL & anon key Supabase | `lib/supabase.ts`      | Samakan dengan project Supabase Anda                                                               |
 | Alamat ML API           | `app/(tabs)/index.tsx` | Ganti IP pada `http://<IP-KOMPUTER>:8000/predict` dengan IP lokal komputer yang menjalankan ML API |
 
-> 💡 HP dan komputer harus berada di **jaringan Wi-Fi yang sama**. Jangan gunakan `localhost`, karena akan merujuk ke HP itu sendiri.
+> HP dan komputer harus berada di **jaringan Wi-Fi yang sama**. Jangan gunakan `localhost`, karena akan merujuk ke HP itu sendiri.
 
 ```bash
 npx expo start
@@ -183,7 +183,29 @@ Pindai QR code yang muncul dengan **Expo Go**.
 
 ---
 
-## 🗄️ Skema Database
+## Panduan Penggunaan
+
+### Aplikasi Mobile — Warga & Petugas Lapangan
+
+1. **Autentikasi** — Buka aplikasi, lalu daftar atau masuk dengan akun Anda.
+2. **Scan Sampah** — Buka tab **Scan Sampah** dan izinkan akses kamera serta lokasi (GPS).
+3. **Ambil foto** — Arahkan kamera ke sampah, lalu tekan tombol rana. Foto dikirim ke ML API untuk diklasifikasikan.
+4. **Laporan terkirim otomatis** — Hasil deteksi (kategori dan confidence), foto, dan koordinat lokasi disimpan sebagai laporan berstatus `Pending`.
+5. **Pantau status** — Buka tab **Riwayat** untuk melihat seluruh laporan Anda dan status penanganannya.
+
+Status laporan: `Pending` → `In Progress` → `Completed` (atau `Rejected`).
+
+### Web Dashboard — Administrator
+
+1. **Login** — Buka `http://localhost:3000` (atau URL publik) dan masuk dengan akun Administrator.
+2. **Statistik Overview** — Lihat total laporan, jumlah per status, proporsi status, dan distribusi kategori sampah.
+3. **Peta Persebaran** — Pantau titik lokasi laporan pada peta interaktif.
+4. **Manajemen Laporan** — Filter berdasarkan status, klik foto untuk memperbesar, buka lokasi di Google Maps, lalu ubah status laporan (`Process`, `Complete`, `Reject`) atau hapus laporan.
+5. **Manajemen Pengguna** — Lihat daftar akun terdaftar beserta role-nya.
+
+---
+
+## Skema Database
 
 **`users`**
 
@@ -209,28 +231,6 @@ Pindai QR code yang muncul dengan **Expo Go**.
 | `status`                 | text        | `Pending` · `In Progress` · `Completed` · `Rejected` |
 | `latitude` / `longitude` | float       | Koordinat lokasi laporan                             |
 | `created_at`             | timestamptz | Waktu laporan dibuat                                 |
-
----
-
-## 📖 Panduan Penggunaan
-
-### 📱 Aplikasi Mobile — Warga & Petugas Lapangan
-
-1. **Autentikasi** — Buka aplikasi, lalu daftar atau masuk dengan akun Anda.
-2. **Scan Sampah** — Buka tab **Scan Sampah** dan izinkan akses kamera serta lokasi (GPS).
-3. **Ambil foto** — Arahkan kamera ke sampah, lalu tekan tombol rana. Foto dikirim ke ML API untuk diklasifikasikan.
-4. **Laporan terkirim otomatis** — Hasil deteksi (kategori dan confidence), foto, dan koordinat lokasi disimpan sebagai laporan berstatus `Pending`.
-5. **Pantau status** — Buka tab **Riwayat** untuk melihat seluruh laporan Anda dan status penanganannya.
-
-Status laporan: `Pending` ⏳ → `In Progress` 🔄 → `Completed` ✅ (atau `Rejected` ❌).
-
-### 💻 Web Dashboard — Administrator
-
-1. **Login** — Buka `http://localhost:3000` (atau URL publik) dan masuk dengan akun Administrator.
-2. **Statistik Overview** — Lihat total laporan, jumlah per status, proporsi status, dan distribusi kategori sampah.
-3. **Peta Persebaran** — Pantau titik lokasi laporan pada peta interaktif.
-4. **Manajemen Laporan** — Filter berdasarkan status, klik foto untuk memperbesar, buka lokasi di Google Maps, lalu ubah status laporan (`Process`, `Complete`, `Reject`) atau hapus laporan.
-5. **Manajemen Pengguna** — Lihat daftar akun terdaftar beserta role-nya.
 
 ---
 
